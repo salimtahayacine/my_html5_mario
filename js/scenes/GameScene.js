@@ -63,12 +63,44 @@ class GameScene extends Phaser.Scene {
             // Create map from tilemap
             this.map = this.make.tilemap({ key: mapKey });
             
-            // Add tileset to map
-            const tileset = this.map.addTilesetImage('tiles', 'tiles');
+            // Check if the tilemap was loaded correctly
+            if (!this.map) {
+                console.error("Tilemap not loaded correctly. Creating fallback level.");
+                this.createFallbackLevel();
+                return;
+            }
+            
+            // Add tileset to map - using CSS styling instead of images
+            let tileset;
+            
+            try {
+                // First try to use tileset from preloaded assets (for backward compatibility)
+                tileset = this.map.addTilesetImage('tiles', 'tiles');
+            } catch (e) {
+                console.log("Using CSS-based tiles instead of images");
+                // Create a custom tileset for CSS-styled tiles
+                this.createCssTileset();
+                tileset = this.cssTileset;
+            }
+            
+            if (!tileset) {
+                console.error("Tileset could not be loaded. Creating fallback level.");
+                this.createFallbackLevel();
+                return;
+            }
             
             // Create layers - with error handling in case layers don't exist
             try {
-                this.backgroundLayer = this.map.createLayer('background', tileset, 0, 0);
+                // Safely check if layers exist before creating them
+                const hasBackgroundLayer = this.map.layers && this.map.layers.find(layer => layer.name === 'background');
+                if (hasBackgroundLayer) {
+                    this.backgroundLayer = this.map.createLayer('background', tileset, 0, 0);
+                    // Apply CSS styling to background layer
+                    this.applyTileStyles(this.backgroundLayer, 'background');
+                } else {
+                    console.warn("No 'background' layer found, creating a default one");
+                    this.backgroundLayer = this.add.rectangle(0, 0, 3000, 600, 0x6b8cff).setOrigin(0, 0);
+                }
             } catch (e) {
                 console.warn("Could not create 'background' layer:", e.message);
                 // Create a blank background if the layer doesn't exist
@@ -76,44 +108,169 @@ class GameScene extends Phaser.Scene {
             }
             
             try {
-                this.groundLayer = this.map.createLayer('ground', tileset, 0, 0);
-                // Setup collisions for ground layer
-                this.groundLayer.setCollisionByProperty({ collides: true });
+                // Safely check if ground layer exists
+                const hasGroundLayer = this.map.layers && this.map.layers.find(layer => layer.name === 'ground');
+                if (hasGroundLayer) {
+                    this.groundLayer = this.map.createLayer('ground', tileset, 0, 0);
+                    // Setup collisions for ground layer
+                    this.groundLayer.setCollisionByProperty({ collides: true });
+                    // Apply CSS styling to ground layer
+                    this.applyTileStyles(this.groundLayer, 'ground');
+                } else {
+                    console.warn("No 'ground' layer found, creating a fallback ground");
+                    this.createFallbackGround();
+                }
             } catch (e) {
                 console.warn("Could not create 'ground' layer:", e.message);
                 // Create some basic ground platforms if the layer doesn't exist
                 this.createFallbackGround();
             }
             
-            // Create special objects (flag, etc.)
+            // Create special objects (flag, etc.) with CSS styling
             this.specialObjects = this.physics.add.group();
             
             // Find level finish point (flag)
             try {
-                const finishPoint = this.map.findObject('objects', obj => obj.name === 'finish');
+                let finishPoint = null;
+                if (this.map.objects && this.map.objects.length > 0) {
+                    const objectsLayer = this.map.objects.find(layer => layer.name === 'objects');
+                    if (objectsLayer && objectsLayer.objects) {
+                        finishPoint = objectsLayer.objects.find(obj => obj.name === 'finish');
+                    }
+                }
+                
                 if (finishPoint) {
-                    this.finishFlag = this.specialObjects.create(finishPoint.x, finishPoint.y, 'flag');
-                    this.finishFlag.body.allowGravity = false;
-                    this.finishFlag.body.setImmovable(true);
+                    // Create CSS-styled flag instead of using image
+                    this.finishFlag = this.createCssFlag(finishPoint.x, finishPoint.y);
                 } else {
                     // Create a default finish point if none exists in the map
-                    this.finishFlag = this.specialObjects.create(2800, 350, 'flag');
-                    this.finishFlag.body.allowGravity = false;
-                    this.finishFlag.body.setImmovable(true);
+                    this.finishFlag = this.createCssFlag(2800, 350);
                 }
             } catch (e) {
                 console.warn("Could not create finish flag:", e.message);
-                // Create a default finish point
-                this.finishFlag = this.specialObjects.create(2800, 350, 'flag');
-                this.finishFlag.body.allowGravity = false;
-                this.finishFlag.body.setImmovable(true);
+                // Create a default CSS-styled flag
+                this.finishFlag = this.createCssFlag(2800, 350);
             }
+            
+            // Create spawn points or mark valid ground positions for player spawn
+            this.findValidSpawnPositions();
+            
         } catch (error) {
             console.error("Error creating level:", error);
             this.createFallbackLevel();
         }
     }
     
+    // Create a CSS-styled flag game object
+    createCssFlag(x, y) {
+        // Create a container for the flag parts
+        const flag = this.add.container(x, y);
+        
+        // Create the pole
+        const pole = this.add.rectangle(0, 0, 6, 120, 0xA0522D);
+        pole.setOrigin(0.5, 1);
+        
+        // Create the flag cloth using a triangle (or use container + rectangles for more complex shape)
+        const cloth = this.add.triangle(0, -90, 0, 0, 30, 20, 0, 40, 0xFF0000);
+        cloth.setOrigin(0, 0.5);
+        
+        // Add physics body to the container
+        flag.add([pole, cloth]);
+        this.physics.world.enable(flag);
+        flag.body.setSize(32, 32);
+        flag.body.setOffset(-16, -32);
+        flag.body.allowGravity = false;
+        flag.body.setImmovable(true);
+        
+        return flag;
+    }
+    
+    // Create a custom tileset for CSS-styled tiles
+    createCssTileset() {
+        // This is a simplified version - in a real implementation, you would create a more comprehensive tileset
+        this.cssTileset = {
+            getTileProperties: (index) => {
+                return { collides: index > 0 };
+            },
+            getTileData: (index) => {
+                return { cssClass: index === 1 ? 'ground-tile' : (index === 2 ? 'brick-block' : 'question-block') };
+            }
+        };
+    }
+    
+    // Apply CSS styling to tiles based on their type
+    applyTileStyles(layer, layerType) {
+        if (!layer || !layer.tilemap) return;
+        
+        // Iterate through tiles and apply appropriate CSS classes
+        for (let y = 0; y < layer.tilemap.height; y++) {
+            for (let x = 0; x < layer.tilemap.width; x++) {
+                const tile = layer.getTileAt(x, y);
+                if (tile) {
+                    // Add CSS class based on tile index and layer type
+                    if (layerType === 'ground' && tile.index > 0) {
+                        tile.properties.cssClass = 'ground-tile';
+                    } else if (layerType === 'background' && tile.index > 0) {
+                        tile.properties.cssClass = tile.index === 5 ? 'sky-tile' : 'decoration-tile';
+                    }
+                }
+            }
+        }
+    }
+
+    // New method to find valid spawn positions
+    findValidSpawnPositions() {
+        // First try to find the designated spawn point from the object layer
+        try {
+            const spawnPoint = this.map.findObject('objects', obj => obj.name === 'spawn');
+            if (spawnPoint) {
+                this.spawnPoint = { x: spawnPoint.x, y: spawnPoint.y };
+                console.log("Found designated spawn point:", this.spawnPoint);
+                return;
+            }
+        } catch (e) {
+            console.warn("Could not find spawn point from objects layer:", e.message);
+        }
+        
+        // If no spawn point is found, find a safe position on the ground
+        // Look for a valid tile in the first 1/4 of the map to spawn the player
+        const mapWidth = this.map.widthInPixels;
+        const tileSize = this.map.tileWidth;
+        const searchWidth = Math.min(mapWidth / 4, 800); // Search first 1/4 of map or first 800px
+        
+        // Default position if all else fails
+        this.spawnPoint = { x: 100, y: 450 };
+        
+        if (this.groundLayer && typeof this.groundLayer.getTileAt === 'function') {
+            // Search for a suitable ground tile
+            for (let x = 1; x < searchWidth / tileSize; x++) {
+                for (let y = 5; y < this.map.height - 2; y++) {
+                    // Check if this tile is ground
+                    const tile = this.groundLayer.getTileAt(x, y);
+                    if (tile && tile.properties && tile.properties.collides) {
+                        // Check if there's empty space above (at least 2 tiles high for player)
+                        const aboveTile1 = this.groundLayer.getTileAt(x, y - 1);
+                        const aboveTile2 = this.groundLayer.getTileAt(x, y - 2);
+                        
+                        if ((!aboveTile1 || !aboveTile1.properties || !aboveTile1.properties.collides) &&
+                            (!aboveTile2 || !aboveTile2.properties || !aboveTile2.properties.collides)) {
+                            // Found a valid spawn position!
+                            this.spawnPoint = { 
+                                x: x * tileSize + tileSize / 2, 
+                                y: y * tileSize - tileSize / 2 
+                            };
+                            console.log("Found valid ground spawn position:", this.spawnPoint);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // If we get here, we couldn't find a valid ground tile, use default platform
+        console.log("Could not find valid ground tile, using default spawn position:", this.spawnPoint);
+    }
+
     // Create a fallback level if the tilemap fails to load
     createFallbackLevel() {
         console.log("Creating fallback level");
@@ -190,20 +347,22 @@ class GameScene extends Phaser.Scene {
 
     createPlayer() {
         try {
-            // Find player spawn point
-            const spawnPoint = this.map.findObject('objects', obj => obj.name === 'spawn');
-            
-            if (spawnPoint) {
-                // Create player using our simplified Player class
-                this.player = new Player(this, spawnPoint.x, spawnPoint.y);
+            // Use the spawn point determined in findValidSpawnPositions
+            if (this.spawnPoint) {
+                this.player = new Player(this, this.spawnPoint.x, this.spawnPoint.y);
+                console.log("Created player at spawn point:", this.spawnPoint.x, this.spawnPoint.y);
             } else {
-                // Default spawn point if none exists in the map
-                console.log("No spawn point found, using default position");
+                // If somehow spawnPoint wasn't set, use a safe default
+                console.log("No spawn point found, using safe default position");
                 this.player = new Player(this, 100, 450);
             }
+            
+            // Add CSS class for styling
+            this.player.setData('cssClass', 'player');
+            
         } catch (error) {
             console.error("Error creating player:", error);
-            // Create player at default position
+            // Create player at default position as last resort
             this.player = new Player(this, 100, 450);
         }
     }
