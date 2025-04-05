@@ -167,7 +167,17 @@ class GameScene extends Phaser.Scene {
         flagElement.style.top = `${y}px`;
         
         // Add to game world
-        document.getElementById('game-world').appendChild(flagElement);
+        let gameWorld = document.getElementById('game-world');
+        if (!gameWorld) {
+            console.log("Creating missing game-world element in createCssFlag");
+            gameWorld = document.createElement('div');
+            gameWorld.id = 'game-world';
+            gameWorld.style.position = 'absolute';
+            gameWorld.style.width = '100%';
+            gameWorld.style.height = '100%';
+            document.getElementById('game-container').appendChild(gameWorld);
+        }
+        gameWorld.appendChild(flagElement);
         
         // Add to CSS elements array for cleanup
         this.cssElements.push(flagElement);
@@ -244,6 +254,18 @@ class GameScene extends Phaser.Scene {
         // Create a physics group for ground collision
         this.groundLayer = this.physics.add.staticGroup();
         
+        // Make sure game-world exists
+        let gameWorld = document.getElementById('game-world');
+        if (!gameWorld) {
+            console.log("Creating missing game-world element in createCssGround");
+            gameWorld = document.createElement('div');
+            gameWorld.id = 'game-world';
+            gameWorld.style.position = 'absolute';
+            gameWorld.style.width = '100%';
+            gameWorld.style.height = '100%';
+            document.getElementById('game-container').appendChild(gameWorld);
+        }
+        
         // Find the ground layer in the tilemap
         const groundLayerData = this.map.layers.find(layer => layer.name === 'ground');
         
@@ -262,7 +284,7 @@ class GameScene extends Phaser.Scene {
                         tileElement.style.top = `${y * this.map.tileHeight}px`;
                         
                         // Add to game world
-                        document.getElementById('game-world').appendChild(tileElement);
+                        gameWorld.appendChild(tileElement);
                         
                         // Add to CSS elements array for cleanup
                         this.cssElements.push(tileElement);
@@ -415,6 +437,18 @@ class GameScene extends Phaser.Scene {
     
     // Create fallback ground if the tilemap's ground layer fails to load
     createCssFallbackGround() {
+        // Make sure game-world exists
+        let gameWorld = document.getElementById('game-world');
+        if (!gameWorld) {
+            console.log("Creating missing game-world element in createCssFallbackGround");
+            gameWorld = document.createElement('div');
+            gameWorld.id = 'game-world';
+            gameWorld.style.position = 'absolute';
+            gameWorld.style.width = '100%';
+            gameWorld.style.height = '100%';
+            document.getElementById('game-container').appendChild(gameWorld);
+        }
+        
         // Create a basic ground platform with CSS
         for (let i = 0; i < 60; i++) {
             // Create CSS element
@@ -423,7 +457,7 @@ class GameScene extends Phaser.Scene {
             groundElement.style.left = `${i * 50}px`;
             groundElement.style.top = '550px';
             
-            document.getElementById('game-world').appendChild(groundElement);
+            gameWorld.appendChild(groundElement);
             this.cssElements.push(groundElement);
             
             // Create physics body in the group
@@ -445,7 +479,18 @@ class GameScene extends Phaser.Scene {
                 playerElement.style.left = `${this.spawnPoint.x}px`;
                 playerElement.style.top = `${this.spawnPoint.y}px`;
                 
-                document.getElementById('game-world').appendChild(playerElement);
+                // Make sure game-world exists
+                let gameWorld = document.getElementById('game-world');
+                if (!gameWorld) {
+                    console.log("Creating missing game-world element in createPlayer");
+                    gameWorld = document.createElement('div');
+                    gameWorld.id = 'game-world';
+                    gameWorld.style.position = 'absolute';
+                    gameWorld.style.width = '100%';
+                    gameWorld.style.height = '100%';
+                    document.getElementById('game-container').appendChild(gameWorld);
+                }
+                gameWorld.appendChild(playerElement);
                 this.cssElements.push(playerElement);
                 
                 // Create a physics sprite for the player (invisible)
@@ -480,6 +525,18 @@ class GameScene extends Phaser.Scene {
         // Group for collectible objects
         this.collectibles = this.physics.add.group();
         
+        // Make sure game-world exists
+        let gameWorld = document.getElementById('game-world');
+        if (!gameWorld) {
+            console.log("Creating missing game-world element in createCollectibles");
+            gameWorld = document.createElement('div');
+            gameWorld.id = 'game-world';
+            gameWorld.style.position = 'absolute';
+            gameWorld.style.width = '100%';
+            gameWorld.style.height = '100%';
+            document.getElementById('game-container').appendChild(gameWorld);
+        }
+        
         try {
             // Add coins from objects layer
             const coins = this.findCoinObjects();
@@ -492,7 +549,7 @@ class GameScene extends Phaser.Scene {
                     coinElement.style.left = `${coin.x}px`;
                     coinElement.style.top = `${coin.y}px`;
                     
-                    document.getElementById('game-world').appendChild(coinElement);
+                    gameWorld.appendChild(coinElement);
                     this.cssElements.push(coinElement);
                     
                     // Create physics body for coin (invisible)
@@ -534,6 +591,18 @@ class GameScene extends Phaser.Scene {
     createDefaultCoins() {
         console.log("Creating default CSS coins");
         
+        // Make sure game-world exists
+        let gameWorld = document.getElementById('game-world');
+        if (!gameWorld) {
+            console.log("Creating missing game-world element in createDefaultCoins");
+            gameWorld = document.createElement('div');
+            gameWorld.id = 'game-world';
+            gameWorld.style.position = 'absolute';
+            gameWorld.style.width = '100%';
+            gameWorld.style.height = '100%';
+            document.getElementById('game-container').appendChild(gameWorld);
+        }
+        
         // Default coin positions
         const defaultCoinPositions = [
             { x: 350, y: 250 },
@@ -552,7 +621,7 @@ class GameScene extends Phaser.Scene {
             coinElement.style.left = `${pos.x}px`;
             coinElement.style.top = `${pos.y}px`;
             
-            document.getElementById('game-world').appendChild(coinElement);
+            gameWorld.appendChild(coinElement);
             this.cssElements.push(coinElement);
             
             // Create physics body (invisible)
@@ -636,8 +705,107 @@ class GameScene extends Phaser.Scene {
         this.updatePlayerCss();
     }
 
-    // The rest of your methods remain similar but with CSS adaptations
-    // ...
+    // Setup camera
+    setupCamera() {
+        if (this.player) {
+            // Set camera bounds to map size
+            this.cameras.main.setBounds(0, 0, this.map.widthInPixels, this.map.heightInPixels);
+            
+            // Camera follows the player
+            this.cameras.main.startFollow(this.player);
+            
+            // Set some deadzone for smoother camera movement
+            this.cameras.main.setDeadzone(200, 200);
+            
+            // Set zoom level
+            this.cameras.main.setZoom(1);
+        }
+    }
+
+    // Add missing setupCollisions method
+    setupCollisions() {
+        if (this.player && this.groundLayer) {
+            // Player collides with ground
+            this.physics.add.collider(this.player, this.groundLayer);
+            
+            // Handle collectible collisions (coins)
+            if (this.collectibles) {
+                this.physics.add.overlap(this.player, this.collectibles, this.collectItem, null, this);
+            }
+            
+            // Handle finish flag collision
+            if (this.finishFlag) {
+                this.physics.add.overlap(this.player, this.finishFlag, this.levelComplete, null, this);
+            }
+        }
+    }
+
+    // Handle collecting items
+    collectItem(player, item) {
+        if (item.collectibleType === 'coin') {
+            // Play coin sound
+            this.sound.play('coin');
+            
+            // Update score
+            this.game.globals.gameData.score += 100;
+            this.events.emit('scoreUpdate', this.game.globals.gameData.score);
+            
+            // Remove coin
+            if (item.element) {
+                item.element.remove();
+            }
+            item.destroy();
+        }
+    }
+
+    // Handle level completion
+    levelComplete(player, flag) {
+        if (this.isGameOver) return;
+        
+        this.isGameOver = true;
+        
+        // Play level complete sound
+        this.sound.play('levelcomplete');
+        
+        // Disable player controls
+        this.game.globals.controlsEnabled = false;
+        
+        // Stop player
+        this.player.setVelocity(0, 0);
+        
+        // Show level complete message
+        const levelCompleteMsg = document.createElement('div');
+        levelCompleteMsg.className = 'level-complete';
+        levelCompleteMsg.textContent = 'LEVEL COMPLETE!';
+        document.getElementById('game-container').appendChild(levelCompleteMsg);
+        this.cssElements.push(levelCompleteMsg);
+        
+        // Add time bonus
+        const timeRemaining = Math.max(0, this.timeLimit - Math.floor(this.gameTimer / 1000));
+        const timeBonus = timeRemaining * 10;
+        this.game.globals.gameData.score += timeBonus;
+        this.events.emit('scoreUpdate', this.game.globals.gameData.score);
+        
+        // Save game progress
+        this.saveGameData();
+        
+        // Proceed to next level after delay
+        setTimeout(() => {
+            // Get next level info
+            const nextLevelIndex = this.currentLevel;
+            if (nextLevelIndex < config.levels.length) {
+                // Update game data
+                this.game.globals.gameData.level = nextLevelIndex + 1;
+                
+                // Go to next level
+                this.scene.restart({ level: nextLevelIndex + 1 });
+            } else {
+                // Game complete! Back to menu
+                this.game.globals.gameData.gameCompleted = true;
+                this.scene.start('MainMenuScene');
+            }
+        }, 3000);
+    }
 
     update(time, delta) {
         // Update player movement
@@ -664,6 +832,207 @@ class GameScene extends Phaser.Scene {
             if (time - this.lastSaveTime > config.storage.saveProgressInterval) {
                 this.saveGameData();
                 this.lastSaveTime = time;
+            }
+        }
+    }
+
+    // Setup controls
+    setupControls() {
+        // Keyboard input
+        this.cursors = this.input.keyboard.createCursorKeys();
+        
+        // Mobile touch controls
+        this.setupMobileControls();
+        
+        // Flag for touch controls
+        this.leftPressed = false;
+        this.rightPressed = false;
+        this.jumpPressed = false;
+        this.pausePressed = false;
+    }
+
+    // Setup mobile touch controls
+    setupMobileControls() {
+        if (this.isMobile()) {
+            // Make sure game-container exists
+            const gameContainer = document.getElementById('game-container');
+            
+            // Create mobile controls container if not exists
+            if (!document.getElementById('mobile-controls')) {
+                const controlsContainer = document.createElement('div');
+                controlsContainer.id = 'mobile-controls';
+                controlsContainer.className = 'control-buttons';
+                
+                // Direction buttons container
+                const directionButtons = document.createElement('div');
+                directionButtons.className = 'direction-buttons';
+                
+                // Left button
+                const leftBtn = document.createElement('div');
+                leftBtn.className = 'control-btn';
+                leftBtn.textContent = '←';
+                leftBtn.addEventListener('touchstart', () => { this.leftPressed = true; });
+                leftBtn.addEventListener('touchend', () => { this.leftPressed = false; });
+                directionButtons.appendChild(leftBtn);
+                
+                // Right button
+                const rightBtn = document.createElement('div');
+                rightBtn.className = 'control-btn';
+                rightBtn.textContent = '→';
+                rightBtn.addEventListener('touchstart', () => { this.rightPressed = true; });
+                rightBtn.addEventListener('touchend', () => { this.rightPressed = false; });
+                directionButtons.appendChild(rightBtn);
+                
+                // Action buttons container
+                const actionButtons = document.createElement('div');
+                actionButtons.className = 'action-buttons';
+                
+                // Jump button
+                const jumpBtn = document.createElement('div');
+                jumpBtn.className = 'control-btn';
+                jumpBtn.textContent = '↑';
+                jumpBtn.addEventListener('touchstart', () => { this.jumpPressed = true; });
+                jumpBtn.addEventListener('touchend', () => { this.jumpPressed = false; });
+                actionButtons.appendChild(jumpBtn);
+                
+                // Pause button
+                const pauseBtn = document.createElement('div');
+                pauseBtn.className = 'control-btn';
+                pauseBtn.textContent = '⏸';
+                pauseBtn.addEventListener('touchstart', () => { this.togglePause(); });
+                actionButtons.appendChild(pauseBtn);
+                
+                // Add containers to controls
+                controlsContainer.appendChild(directionButtons);
+                controlsContainer.appendChild(actionButtons);
+                
+                // Add controls to game container
+                gameContainer.appendChild(controlsContainer);
+            }
+        }
+    }
+
+    // Check if device is mobile
+    isMobile() {
+        return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    }
+
+    // Toggle pause state
+    togglePause() {
+        this.isPaused = !this.isPaused;
+        
+        if (this.isPaused) {
+            // Pause physics and animations
+            this.physics.pause();
+            
+            // Show pause overlay
+            const pauseOverlay = document.createElement('div');
+            pauseOverlay.id = 'pause-overlay';
+            pauseOverlay.className = 'game-overlay';
+            pauseOverlay.innerHTML = `
+                <div class="overlay-title">PAUSED</div>
+                <div class="overlay-buttons">
+                    <button class="overlay-btn" id="resume-btn">RESUME</button>
+                    <button class="overlay-btn" id="menu-btn">MENU</button>
+                </div>
+            `;
+            document.getElementById('game-container').appendChild(pauseOverlay);
+            this.cssElements.push(pauseOverlay);
+            
+            // Add button event listeners
+            document.getElementById('resume-btn').addEventListener('click', () => this.togglePause());
+            document.getElementById('menu-btn').addEventListener('click', () => {
+                this.isPaused = false;
+                this.physics.resume();
+                this.scene.start('MainMenuScene');
+            });
+        } else {
+            // Resume physics
+            this.physics.resume();
+            
+            // Remove pause overlay
+            const pauseOverlay = document.getElementById('pause-overlay');
+            if (pauseOverlay) {
+                pauseOverlay.remove();
+            }
+        }
+    }
+
+    // Start level timer
+    startLevelTimer() {
+        this.gameTimer = 0;
+    }
+
+    // Player death
+    playerDie() {
+        if (this.isGameOver) return;
+        
+        // Set game over
+        this.isGameOver = true;
+        
+        // Play death sound
+        this.sound.play('death');
+        
+        // Mark player as dead
+        this.player.isDead = true;
+        
+        // Apply "death jump" and disable controls
+        this.player.setVelocityY(-300);
+        this.player.setVelocityX(0);
+        this.game.globals.controlsEnabled = false;
+        
+        // Decrease lives
+        this.game.globals.gameData.lives--;
+        this.events.emit('livesUpdate', this.game.globals.gameData.lives);
+        
+        // Show game over or restart level
+        setTimeout(() => {
+            if (this.game.globals.gameData.lives <= 0) {
+                // Game over
+                this.gameOver();
+            } else {
+                // Restart level
+                this.scene.restart({ level: this.currentLevel });
+            }
+        }, 2000);
+    }
+
+    // Game over
+    gameOver() {
+        // Show game over overlay
+        const gameOverOverlay = document.createElement('div');
+        gameOverOverlay.id = 'game-over-overlay';
+        gameOverOverlay.className = 'game-overlay';
+        gameOverOverlay.innerHTML = `
+            <div class="overlay-title">GAME OVER</div>
+            <div class="overlay-buttons">
+                <button class="overlay-btn" id="restart-btn">RESTART</button>
+                <button class="overlay-btn" id="menu-btn">MENU</button>
+            </div>
+        `;
+        document.getElementById('game-container').appendChild(gameOverOverlay);
+        this.cssElements.push(gameOverOverlay);
+        
+        // Add button event listeners
+        document.getElementById('restart-btn').addEventListener('click', () => {
+            // Reset game data
+            this.game.globals.gameData.lives = config.startLives;
+            this.game.globals.gameData.level = 1;
+            this.scene.restart({ level: 1 });
+        });
+        
+        document.getElementById('menu-btn').addEventListener('click', () => {
+            this.scene.start('MainMenuScene');
+        });
+    }
+
+    // Save game data
+    saveGameData() {
+        if (GameStorage) {
+            try {
+                GameStorage.saveGameData(this.game.globals.gameData);
+            } catch (error) {
+                console.error("Error saving game data:", error);
             }
         }
     }

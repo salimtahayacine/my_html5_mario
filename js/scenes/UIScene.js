@@ -121,44 +121,44 @@ class UIScene extends Phaser.Scene {
         }
     }
 
+    listenToGameEvents() {
+        // Get reference to game scene
+        const gameScene = this.scene.get('GameScene');
+        
+        // Listen for score updates
+        gameScene.events.on('scoreUpdate', (score) => {
+            this.updateScore(score);
+        }, this);
+        
+        // Listen for lives updates
+        gameScene.events.on('livesUpdate', (lives) => {
+            this.updateLives(lives);
+        }, this);
+        
+        // Listen for coin collection
+        gameScene.events.on('coinCollected', (coins) => {
+            this.updateCoins(coins);
+        }, this);
+        
+        // Listen for time updates
+        gameScene.events.on('timeUpdate', (time) => {
+            this.updateTime(time);
+        }, this);
+        
+        // Listen for game start
+        gameScene.events.on('gameStarted', (data) => {
+            this.gameStarted(data);
+        }, this);
+        
+        // Make sure CSS animations are added
+        this.addCssAnimations();
+    }
+
     updateScore(score) {
         this.scoreText.textContent = 'SCORE: ' + score;
     }
 
     updateLives(lives) {
-        this.livesText.textContent = `x ${lives}`;
-        
-        if (lives < this.globals.gameData.lives && lives > 0) {
-            this.flashElement(this.livesText);
-        }
-        
-        this.globals.gameData.lives = lives;
-    }
-
-    updateCoins(coins) {
-        this.coinsText.textContent = `x ${coins}`;
-        this.pulseElement(this.coinsText.parentElement);
-    }
-
-    updateTime(time) {
-        const minutes = Math.floor(time / 60);
-        const seconds = time % 60;
-        const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        this.timeText.textContent = 'TEMPS: ' + formattedTime;
-        
-        if (time <= 30) {
-            this.timeText.style.color = '#ff0000';
-            
-            if (time <= 10 && !this.timeFlashing) {
-                this.timeFlashing = true;
-                this.flashElement(this.timeText, true);
-            }
-        } else {
-            this.timeText.style.color = '#ffffff';
-            this.timeFlashing = false;
-            this.timeText.style.animation = '';
-        }
-    }
 
     gameStarted(data) {
         this.updateScore(data.score);

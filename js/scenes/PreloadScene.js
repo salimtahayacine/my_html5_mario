@@ -128,6 +128,8 @@ class PreloadScene extends Phaser.Scene {
                 height: 15,
                 tilewidth: 32,
                 tileheight: 32,
+                type: "map",
+                format: "json",  // Add explicit format
                 cssFormatting: true,
                 tilesets: [{
                     name: 'tiles',
@@ -144,6 +146,8 @@ class PreloadScene extends Phaser.Scene {
                         width: 30,
                         height: 15,
                         type: 'tilelayer',
+                        visible: true,
+                        opacity: 1,
                         data: Array(30 * 15).fill(0)
                     },
                     {
@@ -151,12 +155,16 @@ class PreloadScene extends Phaser.Scene {
                         width: 30,
                         height: 15,
                         type: 'tilelayer',
+                        visible: true,
+                        opacity: 1,
                         properties: [{ name: 'collides', type: 'bool', value: true }],
                         data: Array(30 * 15).fill(0)
                     },
                     {
                         name: 'objects',
                         type: 'objectgroup',
+                        visible: true,
+                        opacity: 1,
                         objects: [
                             { id: 1, name: 'spawn', x: 96, y: 416, width: 32, height: 32 },
                             { id: 2, name: 'finish', x: 864, y: 416, width: 32, height: 64 },
@@ -189,7 +197,7 @@ class PreloadScene extends Phaser.Scene {
                 }
             }
             
-            this.cache.tilemap.add(key, { data: cssTilemap });
+            this.cache.tilemap.add(key, { data: cssTilemap, format: 'json' });
             console.log(`Added CSS tilemap ${key} to cache`);
         }
     }
