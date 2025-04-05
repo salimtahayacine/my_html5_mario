@@ -8,77 +8,83 @@ class BootScene extends Phaser.Scene {
     }
 
     preload() {
-        // Charger les ressources nécessaires pour l'écran de chargement
-        this.load.image('loading-background', 'assets/loading-background.jpg');
-        this.load.image('loading-progress', 'assets/loading-progress.png');
-        
-        // Ajouter un gestionnaire d'erreur pour les ressources
-        this.load.on('loaderror', (fileObj) => {
-            console.warn(`Error loading file: ${fileObj.key}`);
-            // Ne pas essayer de créer des ressources de remplacement immédiatement
-            // Nous le ferons dans create() quand nous saurons que le système de rendu est prêt
-        });
+        // Create CSS-based loading screen
+        this.createLoadingScreen();
     }
 
     create() {
-        // Vérifier si les ressources de chargement sont disponibles et créer des fallbacks si nécessaire
-        if (!this.textures.exists('loading-background')) {
-            this.createLoadingBackgroundFallback();
-        }
-        
-        if (!this.textures.exists('loading-progress')) {
-            this.createLoadingProgressFallback();
-        }
-        
-        // Initialiser les propriétés globales du jeu
+        // Initialize game settings
         this.initGameSettings();
         
-        // Passer à la scène de préchargement
+        // Move to preload scene
         this.scene.start('PreloadScene');
     }
 
-    createLoadingBackgroundFallback() {
-        try {
-            console.log("Creating fallback loading background");
-            
-            // Créer un simple rectangle comme fond de la barre de progression
-            const bgGraphics = this.add.graphics();
-            bgGraphics.fillStyle(0x333333, 1);
-            bgGraphics.fillRect(0, 0, 400, 40);
-            bgGraphics.lineStyle(2, 0xffffff, 1);
-            bgGraphics.strokeRect(0, 0, 400, 40);
-            
-            // Générer une texture à partir du graphique
-            bgGraphics.generateTexture('loading-background', 400, 40);
-            bgGraphics.destroy();
-            
-            console.log("Created fallback loading background");
-        } catch (error) {
-            console.error("Error creating loading background fallback:", error);
+    createLoadingScreen() {
+        // Create loading screen container
+        const loadingScreen = document.createElement('div');
+        loadingScreen.style.position = 'absolute';
+        loadingScreen.style.left = '0';
+        loadingScreen.style.top = '0';
+        loadingScreen.style.width = '100%';
+        loadingScreen.style.height = '100%';
+        loadingScreen.style.backgroundColor = '#000000';
+        loadingScreen.style.display = 'flex';
+        loadingScreen.style.flexDirection = 'column';
+        loadingScreen.style.justifyContent = 'center';
+        loadingScreen.style.alignItems = 'center';
+        loadingScreen.style.zIndex = '1000';
+        
+        // Add loading text
+        const loadingText = document.createElement('div');
+        loadingText.textContent = 'Loading...';
+        loadingText.style.color = '#ffffff';
+        loadingText.style.fontSize = '24px';
+        loadingText.style.marginBottom = '20px';
+        loadingScreen.appendChild(loadingText);
+        
+        // Add simple CSS animation for visual feedback
+        const loadingDots = document.createElement('div');
+        loadingDots.style.display = 'flex';
+        loadingDots.style.gap = '8px';
+        
+        for (let i = 0; i < 3; i++) {
+            const dot = document.createElement('div');
+            dot.style.width = '8px';
+            dot.style.height = '8px';
+            dot.style.backgroundColor = '#ffffff';
+            dot.style.borderRadius = '50%';
+            dot.style.animation = `loading-dot ${0.6 + i * 0.2}s infinite alternate`;
+            loadingDots.appendChild(dot);
         }
-    }
-    
-    createLoadingProgressFallback() {
-        try {
-            console.log("Creating fallback loading progress bar");
-            
-            // Créer un simple rectangle comme barre de progression
-            const barGraphics = this.add.graphics();
-            barGraphics.fillStyle(0x42a5f5, 1);
-            barGraphics.fillRect(0, 0, 396, 36);
-            
-            // Générer une texture à partir du graphique
-            barGraphics.generateTexture('loading-progress', 396, 36);
-            barGraphics.destroy();
-            
-            console.log("Created fallback loading progress bar");
-        } catch (error) {
-            console.error("Error creating loading progress fallback:", error);
-        }
+        
+        loadingScreen.appendChild(loadingDots);
+        
+        // Add animation keyframes
+        const style = document.createElement('style');
+        style.textContent = `
+            @keyframes loading-dot {
+                0% { transform: translateY(0); }
+                100% { transform: translateY(-10px); }
+            }
+        `;
+        document.head.appendChild(style);
+        
+        // Add to game container
+        document.getElementById('game-container').appendChild(loadingScreen);
+        
+        // Store reference to remove later
+        this.loadingScreen = loadingScreen;
+        
+        // Remove loading screen when moving to next scene
+        this.events.once('shutdown', () => {
+            loadingScreen.remove();
+            style.remove();
+        });
     }
 
     initGameSettings() {
-        // Initialiser les données de jeu globales
+        // Initialize global game data
         this.game.globals = {
             gameData: {
                 score: 0,
@@ -93,7 +99,7 @@ class BootScene extends Phaser.Scene {
             controlsEnabled: true
         };
 
-        // Essayer de charger les données sauvegardées depuis localStorage
+        // Load saved game data
         this.loadSavedGameData();
     }
     

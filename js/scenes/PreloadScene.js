@@ -1,6 +1,3 @@
-/**
- * PreloadScene - Simplified asset loading for Mario icon version
- */
 class PreloadScene extends Phaser.Scene {
     constructor() {
         super({ key: 'PreloadScene' });
@@ -11,15 +8,14 @@ class PreloadScene extends Phaser.Scene {
         // Create loading bar
         this.createLoadingBar();
         
-        // Add error handler for resources
-        this.load.on('loaderror', (fileObj) => {
-            console.warn(`Error loading file: ${fileObj.key}`);
-        });
+        // Load only sounds, no images needed
+        this.loadSoundAssets();
         
-        // Load the bare minimum assets needed
-        this.loadEssentialAssets();
+        // Create CSS-based tilemaps
+        this.createCssTilemap('level1');
+        this.createCssTilemap('level2');
+        this.createCssTilemap('level3');
         
-        // Add event when everything is loaded
         this.load.on('complete', () => {
             this.loadingComplete = true;
             console.log('All assets loaded!');
@@ -28,94 +24,63 @@ class PreloadScene extends Phaser.Scene {
 
     create() {
         try {
-            // Only create simple animations if needed
-            this.createBasicAnimations();
-            
-            // Display diagnostic message
             console.log("PreloadScene complete, moving to main menu");
-            
-            // Move to main menu
             this.scene.start('MainMenuScene');
         } catch (error) {
             console.error("Error in PreloadScene.create:", error);
-            // Despite the error, try to move to the main menu
             this.scene.start('MainMenuScene');
         }
     }
 
     createLoadingBar() {
-        // Create a simple loading bar using graphics
-        this.loadingText = this.add.text(
-            config.display.width / 2, 
-            config.display.height / 2 - 50,
-            'Loading...',
-            { 
-                font: '20px Arial',
-                fill: '#ffffff'
-            }
-        ).setOrigin(0.5);
+        // Create a CSS-based loading bar
+        const loadingBar = document.createElement('div');
+        loadingBar.style.position = 'absolute';
+        loadingBar.style.left = '50%';
+        loadingBar.style.top = '50%';
+        loadingBar.style.transform = 'translate(-50%, -50%)';
+        loadingBar.style.width = '400px';
+        loadingBar.style.height = '40px';
+        loadingBar.style.backgroundColor = '#333333';
+        loadingBar.style.border = '2px solid white';
         
-        // Create graphics for progress bar
-        this.bgBar = this.add.graphics();
-        this.bgBar.fillStyle(0x333333, 1);
-        this.bgBar.fillRect((config.display.width - 400) / 2, config.display.height / 2 - 20, 400, 40);
+        const progress = document.createElement('div');
+        progress.style.width = '0%';
+        progress.style.height = '100%';
+        progress.style.backgroundColor = '#42a5f5';
+        progress.style.transition = 'width 0.2s';
+        loadingBar.appendChild(progress);
         
-        this.progressBar = this.add.graphics();
+        const loadingText = document.createElement('div');
+        loadingText.style.position = 'absolute';
+        loadingText.style.width = '100%';
+        loadingText.style.top = '-30px';
+        loadingText.style.textAlign = 'center';
+        loadingText.style.color = 'white';
+        loadingText.style.fontSize = '20px';
+        loadingText.textContent = 'Loading... 0%';
+        loadingBar.appendChild(loadingText);
         
-        // Update graphics during loading
+        document.getElementById('game-container').appendChild(loadingBar);
+        
         this.load.on('progress', (value) => {
-            this.progressBar.clear();
-            this.progressBar.fillStyle(0x42a5f5, 1);
-            this.progressBar.fillRect(
-                (config.display.width - 400) / 2 + 2, 
-                config.display.height / 2 - 18, 
-                396 * value, 
-                36
-            );
-            this.loadingText.setText(`Loading... ${Math.floor(value * 100)}%`);
+            progress.style.width = `${value * 100}%`;
+            loadingText.textContent = `Loading... ${Math.floor(value * 100)}%`;
+        });
+        
+        this.load.on('complete', () => {
+            loadingBar.remove();
         });
     }
 
-    loadEssentialAssets() {
-        // Load only essential images
-        
-        // Main background
-        this.load.image('background-sky', 'assets/images/background-sky.jpg');
-        this.load.image('background-mountains', 'assets/images/background-mountains.jpg');
-        this.load.image('background-trees', 'assets/images/background-trees.jpg');
-        
-        // UI and logo
-        this.load.image('logo', 'assets/images/logo.png');
-        
-        // Game objects (simplified)
-        this.load.image('coin', 'assets/images/coin.png');
-        this.load.image('flag', 'assets/images/flag.png');
-        
-        // Use icon instead of sprite sheet for Mario
-        this.load.image('mario', 'assets/images/mario.png');
-        this.load.image('tiles', 'assets/images/mario.png'); // Fallback for tiles.png
-        
-        // Icons
-        this.load.image('icon-life', 'assets/images/mario.png'); // Fallback if icon-life.png is missing
-        this.load.image('icon-coin', 'assets/images/coin.png');
-        
-        // Load sound effects with proper error handling
+    loadSoundAssets() {
+        // Load sound effects
         this.loadSoundWithFallback('jump', 'assets/sounds/jump.wav');
         this.loadSoundWithFallback('coin', 'assets/sounds/coin.wav');
         this.loadSoundWithFallback('death', 'assets/sounds/death.wav');
         this.loadSoundWithFallback('levelcomplete', 'assets/sounds/levelcomplete.wav');
-        
-        // Tilemaps - corrected paths to match file structure
-        this.load.tilemapTiledJSON('level1', 'assets/tilemaps/level1.json');
-        this.load.tilemapTiledJSON('level2', 'assets/tilemaps/level2.json');
-        this.load.tilemapTiledJSON('level3', 'assets/tilemaps/level3.json');
-        
-        // Adding a fallback for sounds that might be missing
-        this.load.on('filecomplete', (key, type) => {
-            console.log(`Loaded: ${key} (${type})`);
-        });
     }
-    
+
     // Helper function to load sounds with fallbacks
     loadSoundWithFallback(key, path) {
         this.load.audio(key, path);
@@ -134,28 +99,18 @@ class PreloadScene extends Phaser.Scene {
     
     // Create a fallback sound if the original fails to load
     createFallbackSound(key) {
-        // Create a short, silent sound as a fallback to prevent errors
+        // Create a short, silent sound as a fallback
         const context = new (window.AudioContext || window.webkitAudioContext)();
         const oscillator = context.createOscillator();
         const gainNode = context.createGain();
         
-        // Set gain to 0 (silent)
         gainNode.gain.value = 0;
         oscillator.connect(gainNode);
         gainNode.connect(context.destination);
         
-        // Create a 0.1 second buffer
         const buffer = context.createBuffer(1, context.sampleRate * 0.1, context.sampleRate);
-        
-        // Convert the buffer to base64
-        const source = context.createBufferSource();
-        source.buffer = buffer;
-        
-        // Create the fallback audio file
         const fallbackBase64 = 'data:audio/wav;base64,UklGRiSAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
-        this.textures.addBase64(key + '-fallback', fallbackBase64);
         
-        // Add the fallback sound to the cache
         this.cache.audio.add(key, {
             type: 'wav',
             data: new Audio(fallbackBase64)
@@ -164,33 +119,78 @@ class PreloadScene extends Phaser.Scene {
         console.log(`Created fallback sound for ${key}`);
     }
 
-    createBasicAnimations() {
-        // Since we're using a static icon, we don't need complex animations
-        // We'll create empty animations just to avoid errors if code tries to play them
-        const dummyConfig = { frameRate: 10, repeat: -1 };
-        
-        this.anims.create({
-            key: 'mario-idle',
-            frames: [ { key: 'mario', frame: 0 } ],
-            ...dummyConfig
-        });
-        
-        this.anims.create({
-            key: 'mario-run',
-            frames: [ { key: 'mario', frame: 0 } ],
-            ...dummyConfig
-        });
-        
-        this.anims.create({
-            key: 'mario-jump',
-            frames: [ { key: 'mario', frame: 0 } ],
-            ...dummyConfig
-        });
-        
-        this.anims.create({
-            key: 'mario-die',
-            frames: [ { key: 'mario', frame: 0 } ],
-            ...dummyConfig
-        });
+    createCssTilemap(key) {
+        if (!this.cache.tilemap.exists(key)) {
+            console.log(`Creating CSS tilemap for ${key}`);
+            
+            const cssTilemap = {
+                width: 30,
+                height: 15,
+                tilewidth: 32,
+                tileheight: 32,
+                cssFormatting: true,
+                tilesets: [{
+                    name: 'tiles',
+                    firstgid: 1,
+                    tilewidth: 32,
+                    tileheight: 32,
+                    tilecount: 1,
+                    columns: 1,
+                    cssClass: 'ground-tile'
+                }],
+                layers: [
+                    {
+                        name: 'background',
+                        width: 30,
+                        height: 15,
+                        type: 'tilelayer',
+                        data: Array(30 * 15).fill(0)
+                    },
+                    {
+                        name: 'ground',
+                        width: 30,
+                        height: 15,
+                        type: 'tilelayer',
+                        properties: [{ name: 'collides', type: 'bool', value: true }],
+                        data: Array(30 * 15).fill(0)
+                    },
+                    {
+                        name: 'objects',
+                        type: 'objectgroup',
+                        objects: [
+                            { id: 1, name: 'spawn', x: 96, y: 416, width: 32, height: 32 },
+                            { id: 2, name: 'finish', x: 864, y: 416, width: 32, height: 64 },
+                            { id: 3, name: 'coin', x: 350, y: 350, width: 16, height: 16 },
+                            { id: 4, name: 'coin', x: 450, y: 300, width: 16, height: 16 },
+                            { id: 5, name: 'coin', x: 550, y: 250, width: 16, height: 16 },
+                            { id: 6, name: 'coin', x: 650, y: 300, width: 16, height: 16 },
+                            { id: 7, name: 'coin', x: 750, y: 350, width: 16, height: 16 }
+                        ]
+                    }
+                ]
+            };
+            
+            // Set the ground tiles
+            for (let i = 0; i < cssTilemap.width; i++) {
+                cssTilemap.layers[1].data[14 * cssTilemap.width + i] = 1; // Bottom row
+                
+                // Add platforms
+                if (i >= 4 && i <= 6) {
+                    cssTilemap.layers[1].data[10 * cssTilemap.width + i] = 1;
+                }
+                if (i >= 10 && i <= 12) {
+                    cssTilemap.layers[1].data[8 * cssTilemap.width + i] = 1;
+                }
+                if (i >= 16 && i <= 18) {
+                    cssTilemap.layers[1].data[6 * cssTilemap.width + i] = 1;
+                }
+                if (i >= 22 && i <= 24) {
+                    cssTilemap.layers[1].data[10 * cssTilemap.width + i] = 1;
+                }
+            }
+            
+            this.cache.tilemap.add(key, { data: cssTilemap });
+            console.log(`Added CSS tilemap ${key} to cache`);
+        }
     }
 }

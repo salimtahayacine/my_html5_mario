@@ -1,43 +1,50 @@
 /**
- * Player.js - Simplified Mario player class using CSS-based styling
+ * Player.js - CSS-based Mario player class
  */
 class Player {
     constructor(scene, x, y) {
-        // Create the player sprite with CSS styling
+        // Create a physics body for collision detection
         this.sprite = scene.physics.add.sprite(x, y, null);
-        
-        // Use a simple rectangle as the base for the player
-        this.body = scene.add.rectangle(0, 0, 32, 48, 0xFF0000);
-        this.head = scene.add.circle(0, -18, 16, 0xF4A460);
-        this.overalls = scene.add.rectangle(0, 0, 28, 20, 0x0000FF);
-        
-        // Add player parts to a container
-        this.container = scene.add.container(x, y, [this.body, this.head, this.overalls]);
         
         // Set up physics body
         this.sprite.setSize(32, 48);
         this.sprite.setDisplaySize(32, 48);
         
+        // Create the CSS visual element
+        this.createCssElement(scene, x, y);
+        
         // Player properties
         this.isDead = false;
         this.isJumping = false;
         this.canJump = true;
+        this.facing = 'right';
         this.scene = scene;
         
         // Set physics properties
         this.sprite.body.setGravityY(config.gravity);
-        
-        // Configure player animations
-        this.configureAnimations();
-        
-        // Add CSS class for styling
-        this.sprite.setData('cssClass', 'player');
     }
     
-    configureAnimations() {
-        // We're using CSS styling instead of sprite animations, but
-        // we still need to track animation states for gameplay logic
-        this.animationState = 'idle';
+    createCssElement(scene, x, y) {
+        // Get the game world element
+        const gameWorld = document.getElementById('game-world');
+        
+        // Create player element if it doesn't exist
+        if (!document.getElementById('css-player')) {
+            // Create CSS element for player
+            this.element = document.createElement('div');
+            this.element.id = 'css-player';
+            this.element.className = 'player';
+            
+            // Position the element
+            this.element.style.left = `${x - 16}px`; // Center the 32px element
+            this.element.style.top = `${y - 24}px`;  // Center the 48px element
+            
+            // Add to game world
+            gameWorld.appendChild(this.element);
+        } else {
+            // Use existing element
+            this.element = document.getElementById('css-player');
+        }
     }
     
     update(cursors, spaceKey, mobileControls) {
@@ -52,32 +59,32 @@ class Player {
         if (onGround) {
             this.canJump = true;
             this.isJumping = false;
+            this.element.classList.remove('jumping');
         }
         
         // Horizontal movement (left/right)
         if (cursors.left.isDown || mobileControls.left) {
             // Move left
             this.sprite.body.setVelocityX(-config.playerSpeed);
-            this.container.setScale(-1, 1); // Flip sprite to face left
+            this.facing = 'left';
+            this.element.style.transform = 'scaleX(-1)';
             
             if (onGround) {
-                this.animationState = 'walk';
+                this.element.classList.add('walking');
             }
         } else if (cursors.right.isDown || mobileControls.right) {
             // Move right
             this.sprite.body.setVelocityX(config.playerSpeed);
-            this.container.setScale(1, 1); // Ensure sprite faces right
+            this.facing = 'right';
+            this.element.style.transform = 'scaleX(1)';
             
             if (onGround) {
-                this.animationState = 'walk';
+                this.element.classList.add('walking');
             }
         } else {
             // No horizontal movement
             this.sprite.body.setVelocityX(0);
-            
-            if (onGround) {
-                this.animationState = 'idle';
-            }
+            this.element.classList.remove('walking');
         }
         
         // Jump logic
@@ -86,7 +93,7 @@ class Player {
             this.sprite.body.setVelocityY(-config.playerJumpForce);
             this.isJumping = true;
             this.canJump = false;
-            this.animationState = 'jump';
+            this.element.classList.add('jumping');
             
             // Play jump sound with error handling
             try {
@@ -96,28 +103,14 @@ class Player {
             }
         }
         
-        // Update the container position to match the physics sprite
-        this.container.x = this.sprite.x;
-        this.container.y = this.sprite.y;
-        
-        // Apply CSS animations based on player state
-        this.updateCssAnimation();
+        // Update the CSS element position
+        this.updateCssPosition();
     }
     
-    updateCssAnimation() {
-        // Apply different CSS animations based on the player's state
-        if (this.animationState === 'walk') {
-            this.body.fillColor = 0xFF0000; // Normal color
-            // In a real CSS implementation, we would apply the walk animation class
-        } else if (this.animationState === 'jump') {
-            this.body.fillColor = 0xFF5555; // Lighter red while jumping
-            // In a real CSS implementation, we would apply the jump animation class
-        } else if (this.animationState === 'dead') {
-            this.body.fillColor = 0x888888; // Gray when dead
-            // In a real CSS implementation, we would apply the death animation class
-        } else {
-            // idle
-            this.body.fillColor = 0xFF0000; // Normal color
+    updateCssPosition() {
+        if (this.element) {
+            this.element.style.left = `${this.sprite.x - 16}px`; // Center the 32px element
+            this.element.style.top = `${this.sprite.y - 24}px`;  // Center the 48px element
         }
     }
     
@@ -125,16 +118,15 @@ class Player {
         if (this.isDead) return;
         
         this.isDead = true;
-        this.animationState = 'dead';
+        
+        // Add dead CSS class
+        this.element.classList.add('dead');
         
         // Stop horizontal movement
         this.sprite.body.setVelocityX(0);
         
         // Apply "death jump"
         this.sprite.body.setVelocityY(-300);
-        
-        // Update the CSS styling for death state
-        this.updateCssAnimation();
     }
     
     // Getters for position (useful for camera following)

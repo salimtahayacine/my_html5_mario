@@ -7,7 +7,7 @@ const config = {
     version: "1.0.0",
     
     // Paramètres du jeu
-    startLives: 3,
+    startLives: 5,
     gravity: 1500,
     playerSpeed: 300,
     playerJumpForce: 600,

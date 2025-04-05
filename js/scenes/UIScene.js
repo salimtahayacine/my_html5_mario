@@ -7,222 +7,194 @@ class UIScene extends Phaser.Scene {
     }
 
     create() {
-        // Références aux données globales
+        // References to global data
         this.globals = this.game.globals;
         
-        // Éléments d'interface
+        // Create UI elements
         this.createUIElements();
         
-        // Écouter les événements de la scène de jeu
+        // Listen to game events
         this.listenToGameEvents();
     }
 
     createUIElements() {
+        // Create UI container
+        this.uiContainer = document.createElement('div');
+        this.uiContainer.className = 'ui-container';
+        document.getElementById('game-container').appendChild(this.uiContainer);
+
         // Score
-        this.scoreText = this.add.text(20, 20, 'SCORE: 0', {
-            fontSize: '20px',
-            fill: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.scoreText.setScrollFactor(0);
+        const scoreContainer = document.createElement('div');
+        scoreContainer.className = 'ui-item';
+        this.scoreText = document.createElement('span');
+        this.scoreText.textContent = 'SCORE: 0';
+        scoreContainer.appendChild(this.scoreText);
+        this.uiContainer.appendChild(scoreContainer);
+
+        // Lives
+        const livesContainer = document.createElement('div');
+        livesContainer.className = 'ui-item';
+        livesContainer.style.position = 'absolute';
+        livesContainer.style.right = '20px';
+        livesContainer.style.top = '20px';
+
+        const livesIcon = document.createElement('div');
+        livesIcon.className = 'player';
+        livesIcon.style.position = 'relative';
+        livesIcon.style.display = 'inline-block';
+        livesIcon.style.width = '24px';
+        livesIcon.style.height = '24px';
+        livesIcon.style.marginRight = '10px';
+        livesIcon.style.transform = 'scale(0.5)';
+
+        this.livesText = document.createElement('span');
+        this.livesText.textContent = `x ${this.globals.gameData.lives}`;
         
-        // Vies
-        this.livesContainer = this.add.container(this.cameras.main.width - 20, 20);
-        this.livesContainer.setScrollFactor(0);
+        livesContainer.appendChild(livesIcon);
+        livesContainer.appendChild(this.livesText);
+        this.uiContainer.appendChild(livesContainer);
+
+        // Coins
+        const coinsContainer = document.createElement('div');
+        coinsContainer.className = 'ui-item';
+        coinsContainer.style.position = 'absolute';
+        coinsContainer.style.left = '50%';
+        coinsContainer.style.transform = 'translateX(-50%)';
+        coinsContainer.style.top = '20px';
+
+        const coinIcon = document.createElement('div');
+        coinIcon.className = 'coin';
+        coinIcon.style.position = 'relative';
+        coinIcon.style.display = 'inline-block';
+        coinIcon.style.marginRight = '10px';
+        coinIcon.style.transform = 'scale(0.8)';
+
+        this.coinsText = document.createElement('span');
+        this.coinsText.textContent = `x ${this.globals.gameData.collectedCoins}`;
         
-        this.livesIcon = this.add.image(0, 0, 'icon-life').setScale(0.8);
-        this.livesText = this.add.text(15, 0, 'x ' + this.globals.gameData.lives, {
-            fontSize: '20px',
-            fill: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0, 0.5);
-        
-        this.livesContainer.add([this.livesIcon, this.livesText]);
-        this.livesContainer.setX(this.cameras.main.width - 20 - this.livesText.width);
-        
-        // Pièces collectées
-        this.coinsContainer = this.add.container(this.cameras.main.width / 2, 20);
-        this.coinsContainer.setScrollFactor(0);
-        
-        this.coinsIcon = this.add.image(-15, 0, 'icon-coin').setScale(0.8);
-        this.coinsText = this.add.text(10, 0, 'x ' + this.globals.gameData.collectedCoins, {
-            fontSize: '20px',
-            fill: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0, 0.5);
-        
-        this.coinsContainer.add([this.coinsIcon, this.coinsText]);
-        
-        // Temps restant
-        this.timeText = this.add.text(this.cameras.main.width / 2, 50, 'TEMPS: 300', {
-            fontSize: '20px',
-            fill: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        }).setOrigin(0.5);
-        this.timeText.setScrollFactor(0);
-        
-        // Niveau actuel
-        this.levelText = this.add.text(20, 50, 'NIVEAU: 1', {
-            fontSize: '20px',
-            fill: '#ffffff',
-            fontStyle: 'bold',
-            stroke: '#000000',
-            strokeThickness: 4
-        });
-        this.levelText.setScrollFactor(0);
-        
-        // Bouton de pause (visible uniquement sur mobile)
+        coinsContainer.appendChild(coinIcon);
+        coinsContainer.appendChild(this.coinsText);
+        this.uiContainer.appendChild(coinsContainer);
+
+        // Time
+        const timeContainer = document.createElement('div');
+        timeContainer.className = 'ui-item';
+        timeContainer.style.position = 'absolute';
+        timeContainer.style.left = '50%';
+        timeContainer.style.transform = 'translateX(-50%)';
+        timeContainer.style.top = '50px';
+
+        this.timeText = document.createElement('span');
+        this.timeText.textContent = 'TEMPS: 300';
+        timeContainer.appendChild(this.timeText);
+        this.uiContainer.appendChild(timeContainer);
+
+        // Level
+        const levelContainer = document.createElement('div');
+        levelContainer.className = 'ui-item';
+        levelContainer.style.position = 'absolute';
+        levelContainer.style.left = '20px';
+        levelContainer.style.top = '50px';
+
+        this.levelText = document.createElement('span');
+        this.levelText.textContent = 'NIVEAU: 1';
+        levelContainer.appendChild(this.levelText);
+        this.uiContainer.appendChild(levelContainer);
+
+        // Pause button (mobile only)
         if (this.sys.game.device.input.touch) {
-            this.pauseButton = this.add.circle(this.cameras.main.width - 40, this.cameras.main.height - 40, 30, 0xffffff, 0.5)
-                .setScrollFactor(0)
-                .setInteractive();
-                
-            this.pauseIcon = this.add.text(this.cameras.main.width - 40, this.cameras.main.height - 40, '⏸️', {
-                fontSize: '24px',
-                fill: '#ffffff'
-            }).setOrigin(0.5).setScrollFactor(0);
-            
-            this.pauseButton.on('pointerup', () => {
-                // Émettre un événement pour mettre le jeu en pause
+            const pauseButton = document.createElement('div');
+            pauseButton.className = 'control-btn';
+            pauseButton.style.position = 'absolute';
+            pauseButton.style.right = '20px';
+            pauseButton.style.bottom = '20px';
+            pauseButton.innerHTML = '⏸️';
+
+            pauseButton.addEventListener('click', () => {
                 const gameScene = this.scene.get('GameScene');
                 if (gameScene) {
-                    if (gameScene.isPaused) {
-                        gameScene.togglePause();
-                    } else {
-                        gameScene.togglePause();
-                    }
+                    gameScene.togglePause();
                 }
             });
-        }
-    }
 
-    listenToGameEvents() {
-        // Récupérer la scène de jeu
-        const gameScene = this.scene.get('GameScene');
-        
-        if (gameScene) {
-            // Écouter les mises à jour du score
-            gameScene.events.on('scoreUpdate', (score) => {
-                this.updateScore(score);
-            });
-            
-            // Écouter les mises à jour des vies
-            gameScene.events.on('livesUpdate', (lives) => {
-                this.updateLives(lives);
-            });
-            
-            // Écouter les mises à jour des pièces collectées
-            gameScene.events.on('coinCollected', (coins) => {
-                this.updateCoins(coins);
-            });
-            
-            // Écouter les mises à jour du temps
-            gameScene.events.on('timeUpdate', (time) => {
-                this.updateTime(time);
-            });
-            
-            // Écouter le début du jeu
-            gameScene.events.on('gameStarted', (data) => {
-                this.gameStarted(data);
-            });
+            this.uiContainer.appendChild(pauseButton);
         }
     }
 
     updateScore(score) {
-        this.scoreText.setText('SCORE: ' + score);
+        this.scoreText.textContent = 'SCORE: ' + score;
     }
 
     updateLives(lives) {
-        this.livesText.setText('x ' + lives);
+        this.livesText.textContent = `x ${lives}`;
         
-        // Positionner le conteneur pour qu'il reste aligné à droite
-        this.livesContainer.setX(this.cameras.main.width - 20 - this.livesText.width);
-        
-        // Animation de clignotement si le joueur perd une vie
         if (lives < this.globals.gameData.lives && lives > 0) {
-            this.flashLivesText();
+            this.flashElement(this.livesText);
         }
         
-        // Mettre à jour la valeur dans les données globales
         this.globals.gameData.lives = lives;
     }
 
     updateCoins(coins) {
-        this.coinsText.setText('x ' + coins);
-        
-        // Animation pour rendre le texte plus grand pendant un moment
-        this.tweens.add({
-            targets: this.coinsContainer,
-            scale: { from: 1, to: 1.2 },
-            duration: 100,
-            yoyo: true
-        });
+        this.coinsText.textContent = `x ${coins}`;
+        this.pulseElement(this.coinsText.parentElement);
     }
 
     updateTime(time) {
-        // Formater le temps en minutes:secondes
         const minutes = Math.floor(time / 60);
         const seconds = time % 60;
         const formattedTime = `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-        this.timeText.setText('TEMPS: ' + formattedTime);
+        this.timeText.textContent = 'TEMPS: ' + formattedTime;
         
-        // Faire clignoter le temps en rouge si moins de 30 secondes
         if (time <= 30) {
-            this.timeText.setFill('#ff0000');
+            this.timeText.style.color = '#ff0000';
             
-            if (time <= 10) {
-                // Ajouter un effet de clignotement pour les 10 dernières secondes
-                if (!this.timeFlashing) {
-                    this.timeFlashing = true;
-                    this.flashTimeText();
-                }
+            if (time <= 10 && !this.timeFlashing) {
+                this.timeFlashing = true;
+                this.flashElement(this.timeText, true);
             }
         } else {
-            this.timeText.setFill('#ffffff');
+            this.timeText.style.color = '#ffffff';
             this.timeFlashing = false;
+            this.timeText.style.animation = '';
         }
     }
 
     gameStarted(data) {
-        // Initialiser les affichages avec les données du début de partie
         this.updateScore(data.score);
         this.updateLives(data.lives);
-        this.levelText.setText('NIVEAU: ' + data.level);
+        this.levelText.textContent = 'NIVEAU: ' + data.level;
         this.updateTime(data.timeLimit);
     }
 
-    flashLivesText() {
-        // Animation de clignotement pour les vies
-        this.tweens.add({
-            targets: this.livesText,
-            alpha: { from: 1, to: 0 },
-            duration: 200,
-            yoyo: true,
-            repeat: 3
-        });
+    flashElement(element, continuous = false) {
+        element.style.animation = `flash ${continuous ? 'infinite' : '4'} 0.5s`;
     }
 
-    flashTimeText() {
-        // Animation de clignotement pour le temps
-        if (this.timeFlashing) {
-            this.tweens.add({
-                targets: this.timeText,
-                alpha: { from: 1, to: 0 },
-                duration: 500,
-                yoyo: true,
-                repeat: -1
-            });
-        } else {
-            this.timeText.alpha = 1;
-            this.tweens.killTweensOf(this.timeText);
+    pulseElement(element) {
+        element.style.animation = 'pulse 0.2s';
+        element.addEventListener('animationend', () => {
+            element.style.animation = '';
+        }, { once: true });
+    }
+
+    // Add necessary CSS animations
+    addCssAnimations() {
+        if (!document.getElementById('ui-animations')) {
+            const style = document.createElement('style');
+            style.id = 'ui-animations';
+            style.textContent = `
+                @keyframes flash {
+                    0%, 100% { opacity: 1; }
+                    50% { opacity: 0; }
+                }
+                @keyframes pulse {
+                    0% { transform: scale(1); }
+                    50% { transform: scale(1.2); }
+                    100% { transform: scale(1); }
+                }
+            `;
+            document.head.appendChild(style);
         }
     }
 }
